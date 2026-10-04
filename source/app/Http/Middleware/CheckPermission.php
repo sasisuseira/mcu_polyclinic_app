@@ -127,6 +127,7 @@ class CheckPermission
             'hasAccessPermission' => 'akses_hak_permission',
             /* Developer Area */
             'hasAccessErrorLog' => 'akses_error_log',
+            'hasAccessUpdateLog' => 'akses_update_log',
             'hasVisiblePrice' => 'akses_informasi_harga_kasir',
             /* Perusahaan Area */
             'hasAccessArciveMCUPerusahaan' => 'akses_berkas_tindakan_mcu_perusahaan',

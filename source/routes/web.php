@@ -1,11 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Web\{AuthController, BerandaController, HakaksesController, MasterdataController, FileController, PendaftaranController, ProfileController, PemeriksaanFisikController, LaboratoriumController, PoliklinikController, LaporanController,DeveloperController};
+use App\Http\Controllers\Web\{AuthController, BerandaController, HakaksesController, MasterdataController, FileController, PendaftaranController, ProfileController, PemeriksaanFisikController, LaboratoriumController, PoliklinikController, LaporanController, DeveloperController, DeveloperUpdateLogController};
 use Illuminate\Http\Request;
 
 Route::get('generate-csrf-token', function () { $token = csrf_token(); return response()->json(['csrf_token' => $token]); });
 Route::get('403', function () { return view('error.403_error'); });
+Route::get('infopembaruan', [DeveloperUpdateLogController::class, 'publicIndex'])->name('dev.update-logs.public');
 Route::domain(config('app.domains.pendaftaran_mandiri'))->group(function () {
     Route::get('/', [PendaftaranController::class, "formulir_pendaftaran"])->name('landing.formulir_pendaftaran');
     Route::get('no_antrian/{kode_antrian}', [PendaftaranController::class, "formulir_no_antrian"])->name('landing.formulir_no_antrian'); 
@@ -27,6 +28,10 @@ Route::group(['middleware' => ['jwt.cookie']], function () {
     });
     Route::prefix('dev')->group(function () {
         Route::get('error_log_app', [DeveloperController::class,"error_log"])->middleware('permission_cache:akses_error_log')->name('dev.error_log');
+        Route::get('update_logs', [DeveloperUpdateLogController::class, 'index'])->middleware('permission_cache:akses_update_log')->name('dev.update-logs.index');
+        Route::post('update_logs', [DeveloperUpdateLogController::class, 'store'])->middleware('permission_cache:akses_update_log')->name('dev.update-logs.store');
+        Route::put('update_logs/{updateLog}', [DeveloperUpdateLogController::class, 'update'])->middleware('permission_cache:akses_update_log')->name('dev.update-logs.update');
+        Route::delete('update_logs/{updateLog}', [DeveloperUpdateLogController::class, 'destroy'])->middleware('permission_cache:akses_update_log')->name('dev.update-logs.destroy');
     });
     Route::prefix('admin')->group(function () {
         Route::get('beranda', [BerandaController::class,"index"])->middleware('permission_cache:akses_beranda')->name('admin.beranda');

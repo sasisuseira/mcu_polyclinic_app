@@ -372,7 +372,7 @@
             </ul>
           </li>
           @endif
-          @if ($hasAccessErrorLog)
+          @if ($hasAccessErrorLog || $hasAccessUpdateLog)
           <li class="sidebar-list">
             <i class="fa fa-thumb-tack"></i>
             <a class="sidebar-link sidebar-title" href="javascript:void(0)">
@@ -382,6 +382,7 @@
             <ul class="sidebar-submenu">
               @foreach([
                 ['condition' => $hasAccessErrorLog, 'url' => 'dev/error_log_app', 'label' => 'Error Log'],
+                ['condition' => $hasAccessUpdateLog, 'url' => 'dev/update_logs', 'label' => 'Log Update'],
               ] as $menuItem)
                 @if ($menuItem['condition'])
                   <li><a href="{{ url($menuItem['url']) }}">{{ $menuItem['label'] }}</a></li>
