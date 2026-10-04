@@ -53,6 +53,7 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'api_version_prefix' => env('APP_VERSI_API', '/api/v1'),
 
     /*
     |--------------------------------------------------------------------------
