@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
 class CheckPermission
 {
     /**
@@ -31,6 +32,19 @@ class CheckPermission
         })->filter()->values()->all();
 
         $isSuperAdmin = in_array('super_admin', $userPermissionNames, true);
+        if (!$isSuperAdmin && $userId !== null) {
+            $isSuperAdmin = User::query()
+                ->whereKey($userId)
+                ->where(function ($query) {
+                    $query->whereHas('roles', fn ($roleQuery) => $roleQuery
+                        ->where('name', 'super_admin')
+                        ->where('guard_name', 'web'))
+                        ->orWhereHas('permissions', fn ($permissionQuery) => $permissionQuery
+                            ->where('name', 'super_admin')
+                            ->where('guard_name', 'web'));
+                })
+                ->exists();
+        }
 
         $requiredPermissions = array_filter(array_map('trim', explode(',', $permission)), fn ($item) => $item !== '');
         $hasAccess = $isSuperAdmin || collect($requiredPermissions)->contains(fn ($neededPermission) => in_array($neededPermission, $userPermissionNames, true));
