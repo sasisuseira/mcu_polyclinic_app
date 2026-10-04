@@ -38,6 +38,8 @@ class UserServices
                 'email' => $data['email'] ?? '',
                 'email_verified_at' => now(),
                 'password' => Hash::make($data['password']),
+                'login_max_attempts' => (isset($data['login_max_attempts']) && $data['login_max_attempts'] !== '' && (int) $data['login_max_attempts'] > 0) ? (int) $data['login_max_attempts'] : 3,
+                'login_hold_minutes' => (isset($data['login_hold_minutes']) && $data['login_hold_minutes'] !== '' && (int) $data['login_hold_minutes'] > 0) ? (int) $data['login_hold_minutes'] : 10,
             ];
             $orm_user = User::create($users);
             $user = User::find($orm_user->id);
@@ -86,6 +88,12 @@ class UserServices
                 'username' => $data['username'] ?? '',
                 'email' => $data['email'] ?? '',
             ];
+            if (isset($data['login_max_attempts']) && $data['login_max_attempts'] !== '') {
+                $datauser['login_max_attempts'] = (int) $data['login_max_attempts'] > 0 ? (int) $data['login_max_attempts'] : 3;
+            }
+            if (isset($data['login_hold_minutes']) && $data['login_hold_minutes'] !== '') {
+                $datauser['login_hold_minutes'] = (int) $data['login_hold_minutes'] > 0 ? (int) $data['login_hold_minutes'] : 10;
+            }
             if (!empty($data['password'])) {
                 $datauser['password'] = Hash::make($data['password']);
             }

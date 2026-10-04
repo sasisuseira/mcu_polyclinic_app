@@ -18,8 +18,27 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, $permission)
     {
-        $userPermissions = session('user_permissions_' . session('user_id'))->toArray();
-        $isSuperAdmin = $this->hasPermission($userPermissions, 'super_admin', false);
+        $userId = $request->attributes->get('user_id') ?? session('user_id');
+        $userPermissions = session('user_permissions_' . $userId, []);
+        $userPermissionNames = collect($userPermissions)->map(function ($permissionItem) {
+            if (is_object($permissionItem)) {
+                return $permissionItem->name ?? null;
+            }
+            if (is_array($permissionItem)) {
+                return $permissionItem['name'] ?? null;
+            }
+            return $permissionItem;
+        })->filter()->values()->all();
+
+        $isSuperAdmin = in_array('super_admin', $userPermissionNames, true);
+
+        $requiredPermissions = array_filter(array_map('trim', explode(',', $permission)), fn ($item) => $item !== '');
+        $hasAccess = $isSuperAdmin || collect($requiredPermissions)->contains(fn ($neededPermission) => in_array($neededPermission, $userPermissionNames, true));
+
+        if (!$hasAccess) {
+            return abort(403, 'Unauthorized');
+        }
+
         $permissionsToCheck = [
             'hasAccessBeranda' => 'akses_beranda',
             'hasAccessKasir' => 'akses_kasir',
@@ -125,19 +144,19 @@ class CheckPermission
             'hasAccessRekapUSGUbdomainPerusahaan' => 'akses_rekap_usg_ubdomain_perusahaan',
             'hasAccessRekapFarminghamScorePerusahaan' => 'akses_rekap_farmingham_score_perusahaan',
         ];
+
         $permissionsShared = [];
         foreach ($permissionsToCheck as $key => $permissionName) {
-            $permissionsShared[$key] = $this->hasPermission($userPermissions, $permissionName, $isSuperAdmin);
+            $permissionsShared[$key] = $this->hasPermission($userPermissionNames, $permissionName, $isSuperAdmin);
         }
         view()->share($permissionsShared);
         return $next($request);
-        // if ($this->hasPermission($userPermissions, $permission, $isSuperAdmin)) {
-        //     view()->share($permissionsShared);
-        //     return $next($request);
-        // }
-        // return abort(403, 'Unauthorized');
     }
+
     function hasPermission($permissions, $permissionName, $isSuperAdmin) {
-        return $isSuperAdmin || in_array($permissionName, array_column($permissions, 'name'));
+        if ($isSuperAdmin) {
+            return true;
+        }
+        return in_array($permissionName, (array) $permissions, true);
     }
 }

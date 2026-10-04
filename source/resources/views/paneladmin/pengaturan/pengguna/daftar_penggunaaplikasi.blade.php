@@ -91,6 +91,30 @@
                   </div>
                 </div>
               </div>
+              <div class="row"> 
+                <div class="col"> 
+                  <div class="mb-3 row"> 
+                    <label class="col-sm-3 mt-2">Maksimal Percobaan Login</label>
+                    <div class="col-sm-9">
+                      <input class="form-control" id="login_max_attempts" type="number" min="1" max="99" placeholder="Contoh : 3" value="3" required>
+                      <div class="invalid-feedback">Masukan jumlah percobaan login yang valid (minimal 1)</div>
+                      <div class="valid-feedback">Terlihat bagus! Jumlah percobaan sudah terisi</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row"> 
+                <div class="col"> 
+                  <div class="mb-3 row"> 
+                    <label class="col-sm-3 mt-2">Durasi Kunci Akun (menit)</label>
+                    <div class="col-sm-9">
+                      <input class="form-control" id="login_hold_minutes" type="number" min="1" max="525600" placeholder="Contoh : 10" value="10" required>
+                      <div class="invalid-feedback">Masukan durasi kunci akun yang valid (minimal 1 menit)</div>
+                      <div class="valid-feedback">Terlihat bagus! Durasi kunci akun sudah terisi</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="tab-pane fade" id="j-pills-UX-designer" role="tabpanel" aria-labelledby="j-pills-UX-designer-tab">
               <div class="row"> 

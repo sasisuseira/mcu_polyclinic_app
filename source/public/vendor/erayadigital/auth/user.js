@@ -189,6 +189,8 @@ $('#btnSimpanPengguna').on('click', function(event) {
         formData.append('alamat', $("#alamat").val());
         formData.append('no_telepon', $("#no_telepon").val());
         formData.append('status_pegawai', $("#status_pegawai").val());
+        formData.append('login_max_attempts', $("#login_max_attempts").val());
+        formData.append('login_hold_minutes', $("#login_hold_minutes").val());
         if($("#tanda_tangan_pegawai")[0].files[0]) {
             formData.append('tanda_tangan_pegawai', $("#tanda_tangan_pegawai")[0].files[0]);
         }
@@ -285,6 +287,8 @@ function editpengguna(id, username){
                 $('#alamat').val(response.data.alamat);
                 $('#no_telepon').val(response.data.no_telepon);
                 $('#status_pegawai').val(response.data.status_pegawai);
+                $('#login_max_attempts').val(response.data.login_max_attempts != null ? response.data.login_max_attempts : 3);
+                $('#login_hold_minutes').val(response.data.login_hold_minutes != null ? response.data.login_hold_minutes : 10);
                 $('#preview_image').attr('src', baseurl + '/image/user/signature/' + response.data.tanda_tangan_pegawai).show();
                 $('#modalTambahPengguna').modal('show');
             },

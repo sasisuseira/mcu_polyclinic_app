@@ -12,6 +12,35 @@ use Spatie\Permission\Models\{Role, Permission};
 
 class RoleAndPermissionController extends Controller
 {
+    private function normalizePermissionName($value): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+
+        $value = trim($value);
+        $value = strtolower($value);
+        $value = preg_replace('/[^a-z0-9_\s-]+/', '', $value);
+        $value = preg_replace('/\s+/', '_', $value);
+        $value = trim($value, "_-. ");
+
+        return $value;
+    }
+
+    private function normalizePermissionList(array $permissions): array
+    {
+        $normalized = [];
+
+        foreach ($permissions as $permission) {
+            $name = $this->normalizePermissionName($permission);
+            if ($name !== '') {
+                $normalized[] = $name;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
     function addpermission(Request $req)
     {
         try {
@@ -24,11 +53,16 @@ class RoleAndPermissionController extends Controller
                 $dynamicAttributes = ['errors' => $validator->errors()];
                 return ResponseHelper::error_validation(__('auth.eds_required_data'), $dynamicAttributes);
             }
-            $nama_hakakses = $req->input('nama_hakakses');
+            $nama_hakakses = $this->normalizePermissionName($req->input('nama_hakakses'));
             $keterangan = $req->input('keterangan');
             $group = $req->input('namagroup');
+
+            if ($nama_hakakses === '') {
+                return ResponseHelper::error_validation('Nama hak akses tidak valid. Gunakan huruf, angka, dan underscore saja.');
+            }
+
             Permission::create([
-                'name' => strtolower(str_replace(' ', '_', $nama_hakakses)),
+                'name' => $nama_hakakses,
                 'guard_name' => 'web',
                 'group' => $group,
                 'description' => $keterangan,
@@ -93,11 +127,16 @@ class RoleAndPermissionController extends Controller
                 return ResponseHelper::error_validation(__('auth.eds_required_data'), $dynamicAttributes);
             }
             $idHakAkses = (int)$req->input('idhakakses');
-            $namaHakAkses = $req->input('namahakakses');
+            $namaHakAkses = $this->normalizePermissionName($req->input('namahakakses'));
             $keterangan = $req->input('keteranganhakakses');
+
+            if ($namaHakAkses === '') {
+                return ResponseHelper::error_validation('Nama hak akses tidak valid. Gunakan huruf, angka, dan underscore saja.');
+            }
+
             $permission = Permission::where('id', $idHakAkses)->first();
             $permission->update([
-                'name' => strtolower(str_replace(' ', '_', $namaHakAkses)),
+                'name' => $namaHakAkses,
                 'description' => $keterangan
             ]);
             return ResponseHelper::success('Hak akses '.$namaHakAkses.' dengan keterangan '.$keterangan.' berhasil diubah.');
@@ -118,16 +157,13 @@ class RoleAndPermissionController extends Controller
             }
             $nama_role = $req->input('name');
             $keterangan_role = $req->input('description');
-            $permissions = $req->input('permissions');
-            $permissions = array_map(function($permission) {
-                return strtolower(str_replace(' ', '_', $permission));
-            }, $permissions);
+            $permissions = $this->normalizePermissionList((array) $req->input('permissions', []));
             $validPermissions = Permission::whereIn('name', $permissions)->pluck('id');
             if ($validPermissions->isEmpty()) {
-                return ResponseHelper::error_validation('Invalid permissions provided. Please select at least one permission.');
+                return ResponseHelper::error_validation('Tidak ada permission yang valid dipilih. Silakan pilih hak akses dari daftar yang tersedia.');
             }
             $role = Role::create([
-                'name' => strtolower(str_replace(' ', '_', $nama_role)),
+                'name' => $this->normalizePermissionName($nama_role),
                 'description' => $keterangan_role,
                 'guard_name' => 'web'
             ]);
@@ -187,9 +223,26 @@ class RoleAndPermissionController extends Controller
             return ResponseHelper::error($th);
         }
     }
+
+    private function invalidateSessionsForRole(Role $role): void
+    {
+        $userIds = $role->users()->pluck('users.id')->unique()->values()->all();
+
+        foreach ($userIds as $userId) {
+            Session::forget('user_permissions_' . $userId);
+            Session::forget('user_details_' . $userId);
+            Session::forget('token_device_' . $userId);
+
+            DB::table('sessions')->where(function ($query) use ($userId) {
+                $query->where('payload', 'like', '%user_permissions_' . $userId . '%')
+                    ->orWhere('payload', 'like', '%user_details_' . $userId . '%')
+                    ->orWhere('payload', 'like', '%user_id|i:' . (int) $userId . '%');
+            })->delete();
+        }
+    }
+
     function editrole(Request $req){
         try {
-            Session::flush(); 
             $validator = Validator::make($req->all(), [
                 'idrole' => 'required|integer|exists:roles,id',
                 'name' => 'required|string|max:255',
@@ -205,22 +258,20 @@ class RoleAndPermissionController extends Controller
             $idRole = $req->input('idrole');
             $nama_role = $req->input('name');
             $keterangan_role = $req->input('description');
-            $permissions = $req->input('permissions');
-            $formattedPermissions = array_map(function($permission) {
-                return strtolower(str_replace(' ', '_', $permission));
-            }, $permissions);
+            $permissions = $this->normalizePermissionList((array) $req->input('permissions', []));
+            $validPermissionNames = Permission::whereIn('name', $permissions)->pluck('name')->all();
             $role = Role::find($idRole);
             if (!$role) {
                 return ResponseHelper::error_validation('Role tidak ditemukan');
             }
             $role->update([
-                'name' => strtolower(str_replace(' ', '_', $nama_role)),
+                'name' => $this->normalizePermissionName($nama_role),
                 'description' => $keterangan_role,
                 'guard_name' => 'web',
             ]);
-            $role->syncPermissions($formattedPermissions);
-            DB::table('sessions')->truncate();
-            return ResponseHelper::success('Role ' . $nama_role . ' berhasil diubah.');
+            $role->syncPermissions($validPermissionNames);
+            $this->invalidateSessionsForRole($role);
+            return ResponseHelper::success('Role ' . $nama_role . ' berhasil diubah. Semua pengguna dengan role ini akan diminta masuk ulang agar hak akses yang baru aktif.');
         } catch (\Throwable $th) {
             return ResponseHelper::error($th);
         }

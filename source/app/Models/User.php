@@ -28,6 +28,10 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'email_verified_at',
         'password',
+        'login_attempts',
+        'login_max_attempts',
+        'login_hold_minutes',
+        'login_locked_until',
     ];
     /**
      * The attributes that should be hidden for serialization.
@@ -49,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'login_locked_until' => 'datetime',
         ];
     }
     public function getJWTIdentifier()
@@ -132,5 +137,62 @@ class User extends Authenticatable implements JWTSubject
             'id', 
             'id'
         );
+    }
+
+    /**
+     * Tentukan apakah akun sedang dalam keadaan terkunci karena melebihi batas percobaan login.
+     */
+    public function isLoginLocked(): bool
+    {
+        if (empty($this->login_locked_until)) {
+            return false;
+        }
+        return $this->login_locked_until->isFuture();
+    }
+
+    /**
+     * Hitung sisa waktu kunci dalam satuan menit (dibulatkan ke atas).
+     */
+    public function loginLockRemainingMinutes(): int
+    {
+        if (!$this->isLoginLocked()) {
+            return 0;
+        }
+        return (int) now()->diffInMinutes($this->login_locked_until) + 1;
+    }
+
+    /**
+     * Catat kegagalan login. Mengembalikan true jika akun baru saja terkunci.
+     */
+    public function recordLoginFailure(): bool
+    {
+        if ($this->isLoginLocked()) {
+            return false;
+        }
+
+        $maxAttempts = (int) ($this->login_max_attempts > 0 ? $this->login_max_attempts : 3);
+        $holdMinutes = (int) ($this->login_hold_minutes > 0 ? $this->login_hold_minutes : 10);
+
+        $this->login_attempts = (int) $this->login_attempts + 1;
+
+        if ($this->login_attempts >= $maxAttempts) {
+            $this->login_locked_until = now()->addMinutes($holdMinutes);
+            $this->login_attempts = 0;
+            $this->save();
+            return true;
+        }
+
+        $this->save();
+        return false;
+    }
+
+    /**
+     * Reset counter percobaan login ketika login berhasil.
+     */
+    public function resetLoginAttempts(): void
+    {
+        $this->login_attempts = 0;
+        $this->login_locked_until = null;
+        $this->save();
     }
 }

@@ -21,5 +21,7 @@ return [
     'eds_login_success' => 'Nama pengguna :username berhasil login',
     'eds_logout_success' => 'Nama pengguna :username berhasil keluar dari sistem',
     'eds_invalid_credentials' => 'Informasi kombinasi kredensial yang anda berikan tidak terdaftar pada database kami',
+    'eds_invalid_credentials_attempt' => 'Informasi kombinasi kredensial yang anda berikan salah. Sisa percobaan: :sisa kali sebelum akun dikunci.',
+    'eds_account_locked' => 'Akun anda terkunci karena terlalu banyak percobaan gagal. Silahkan coba lagi dalam :menit menit.',
     'eds_update_credentials' => 'Silahkan masuk dengan kredential yang baru. Lupakan yang lama',
 ];

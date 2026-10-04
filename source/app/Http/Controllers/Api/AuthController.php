@@ -29,10 +29,32 @@ class AuthController extends Controller
                 $loginField => $req->username,
                 'password' => $req->password,
             ];
+
+            $existingUser = User::where($loginField, $req->username)->first();
+
+            if ($existingUser && $existingUser->isLoginLocked()) {
+                return ResponseHelper::error_validation(
+                    __('auth.eds_account_locked', ['menit' => $existingUser->loginLockRemainingMinutes()])
+                );
+            }
+
             if (!$token = JWTAuth::attempt($credentials)) {
+                if ($existingUser) {
+                    $locked = $existingUser->recordLoginFailure();
+                    if ($locked) {
+                        return ResponseHelper::error_validation(
+                            __('auth.eds_account_locked', ['menit' => $existingUser->loginLockRemainingMinutes()])
+                        );
+                    }
+                    $sisa = (int) $existingUser->login_max_attempts - (int) $existingUser->login_attempts;
+                    return ResponseHelper::data_not_found(
+                        __('auth.eds_invalid_credentials_attempt', ['sisa' => max($sisa, 0)])
+                    );
+                }
                 return ResponseHelper::data_not_found(__('auth.eds_invalid_credentials'));
             }
             $user = JWTAuth::user()->load('pegawai');
+            $user->resetLoginAttempts();
             if (!$user->pegawai ||$user->pegawai->status_pegawai === 'Tidak Aktif') {
                 JWTAuth::invalidate($token);
                 return ResponseHelper::error_validation(

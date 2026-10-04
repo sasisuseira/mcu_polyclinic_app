@@ -39,26 +39,46 @@ class RouteAndPermission extends Model
     public static function listRoleTabel($req, $perHalaman, $offset)
     {
         $parameterpencarian = $req->parameter_pencarian;
-        $tablePrefix = config('database.connections.mysql.prefix');
         $query = DB::table('roles')
-            ->leftJoin('role_has_permissions', 'roles.id', '=', 'role_has_permissions.role_id')
-            ->leftJoin('permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
-            ->select('roles.*', DB::raw('GROUP_CONCAT(' . $tablePrefix . 'permissions.name) as permissions'));
+            ->select('roles.*');
+
         if (!empty($parameterpencarian)) {
             $query->where(function($q) use ($parameterpencarian) {
                 $q->where('roles.name', 'LIKE', '%' . $parameterpencarian . '%')
                   ->orWhere('roles.description', 'LIKE', '%' . $parameterpencarian . '%');
             });
         }
-        $jumlahdata = $query->groupBy('roles.id')->count();
-        $result = $query->groupBy('roles.id')
-            ->take($perHalaman)
+
+        $roleIds = $query->pluck('roles.id')->all();
+
+        $permissionRows = DB::table('role_has_permissions as rhp')
+            ->join('permissions as p', 'rhp.permission_id', '=', 'p.id')
+            ->select('rhp.role_id', 'p.name')
+            ->whereIn('rhp.role_id', $roleIds)
+            ->orderBy('p.name')
+            ->get();
+
+        $permissionMap = [];
+        foreach ($permissionRows as $row) {
+            $permissionMap[(int) $row->role_id][] = $row->name;
+        }
+
+        $permissionMap = array_map(function ($permissions) {
+            return implode(',', array_unique($permissions));
+        }, $permissionMap);
+
+        $result = $query->take($perHalaman)
             ->skip($offset)
             ->orderBy('roles.id', 'ASC')
-            ->get();
+            ->get()
+            ->map(function ($role) use ($permissionMap) {
+                $role->permissions = $permissionMap[$role->id] ?? null;
+                return $role;
+            });
+
         return [
             'data' => $result,
-            'total' => $jumlahdata
+            'total' => count($roleIds),
         ];
     }
     

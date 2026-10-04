@@ -65,6 +65,8 @@ class UserController extends Controller
                 'alamat' => 'required',
                 'no_telepon' => 'required|string',
                 'status_pegawai' => 'required|string',
+                'login_max_attempts' => 'sometimes|integer|min:1|max:99',
+                'login_hold_minutes' => 'sometimes|integer|min:1|max:525600',
             ]);
             if ($validator->fails()) {
                 $dynamicAttributes = ['errors' => $validator->errors()];
@@ -117,6 +119,8 @@ class UserController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'id_pengguna' => 'required',
+                'login_max_attempts' => 'sometimes|integer|min:1|max:99',
+                'login_hold_minutes' => 'sometimes|integer|min:1|max:525600',
             ]);
             if ($validator->fails()) {
                 $dynamicAttributes = ['errors' => $validator->errors()];

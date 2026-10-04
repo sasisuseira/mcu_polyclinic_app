@@ -76,11 +76,18 @@ function tabel_role_tersedia(){
                     title: "Hak Akses",
                     data: "permissions",
                     render(data, type, row) {
-                        if (!data) {
+                        const permissionList = typeof data === 'string'
+                            ? data.split(',').map(value => value.trim()).filter(Boolean)
+                            : Array.isArray(data)
+                                ? data.map(value => String(value).trim()).filter(Boolean)
+                                : [];
+
+                        if (permissionList.length === 0) {
                             return `<span class="badge bg-danger me-1">Akses Semua Fitur MCU Artha Medica</span>`;
                         }
-                        return data.split(',')
-                                .map(permission => `<span class="badge bg-primary me-1">${capitalizeFirstLetter(permission.trim())}</span>`)
+
+                        return permissionList
+                                .map(permission => `<span class="badge bg-primary me-1">${capitalizeFirstLetter(permission)}</span>`)
                                 .join('');
                     }
                 },
@@ -186,11 +193,13 @@ function tabel_role(){
                     className: $(window).width() < 768 ? 'dt-nowrap' : '',
                     render: function(data, type, row, meta) {
                         if (type === 'display') {
+                            const permissionName = String(row.name || '').trim();
                             let buttonText = row.isSelected ? 'Jangan Pilih' : 'Pilih';
                             let buttonClass = row.isSelected ? 'btn-secondary' : 'btn-primary';
-                            return '<button class="btn ' + buttonClass + ' btn-sm role-button" data-id="' + row.id + '" onclick="toggleRowSelection(this.closest(\'tr\'))">' +
+                            const checkboxHtml = '<input type="checkbox" class="form-check-input group-' + revertStringToLowerCase(row.group) + '" id="checkbox_'+row.id+'" name="checkbox_roles[]" data-permission-name="' + permissionName + '" onclick="toggleRowSelection(this.closest(\'tr\'))" style="display:none;">';
+                            return '<button class="btn ' + buttonClass + ' btn-sm role-button" data-id="' + row.id + '" data-permission-name="' + permissionName + '" onclick="toggleRowSelection(this.closest(\'tr\'))">' +
                                 buttonText +
-                                '</button><input type="checkbox" class="form-check-input group-' + revertStringToLowerCase(row.group) + '" id="checkbox_'+row.id+'" name="checkbox_roles[]" onclick="toggleRowSelection(this.closest(\'tr\'))" style="display:none;">';
+                                '</button>' + checkboxHtml;
                         }
                         return data;
                     }
@@ -220,6 +229,16 @@ function tabel_role(){
                             '</tr>'
                         );
                         last = group;
+                    }
+                });
+
+                $('#datatables_permission_tersedia tbody tr').each(function() {
+                    const row = $(this);
+                    const checkbox = row.find('input[type="checkbox"]');
+                    if (checkbox.length > 0) {
+                        const permissionName = String(checkbox.data('permission-name') || row.data('permission-name') || row.find('td').eq(1).text().trim()).trim();
+                        row.attr('data-permission-name', permissionName);
+                        applyRowSelectionState(row, checkbox.is(':checked'));
                     }
                 });
             }
@@ -253,9 +272,12 @@ $('#simpan_role').on('click', function() {
     $("#simpan_role").html('<i class="fa fa-spinner fa-spin"></i> Sedang Menyimpan Data');
     let selectedPermissions = [];
     checkedCheckboxes.each(function() {
-        selectedPermissions.push(
-            $(this).closest('tr').find('td:first').text().trim()
-        );
+        const $checkbox = $(this);
+        const permissionName = $checkbox.data('permission-name') || $checkbox.closest('tr').data('permission-name') || $checkbox.closest('tr').find('td').eq(1).data('permission-name') || $checkbox.closest('tr').find('td').eq(1).text().trim();
+        const cleanPermissionName = String(permissionName || '').trim();
+        if (cleanPermissionName) {
+            selectedPermissions.push(cleanPermissionName);
+        }
     });
     $.ajax({
         url: baseurlapi + (isedit ? '/role/editrole' : '/role/tambahrole'),
@@ -319,39 +341,54 @@ function hapusrole(idrole,namarole, hakaskes){
         }
     });
 }
-function uncheckall_datatables_permission_tersedia(){
-    $('#datatables_permission_tersedia tbody tr').each(function() {
-        let row = $(this);
-        row.removeClass('selected');
-        let button = row.find('.role-button');
-        let checkbox = row.find('input[type="checkbox"]');
-        button.text('Pilih').removeClass('btn-secondary').addClass('btn-primary');
-        checkbox.prop('checked', false);
-        row.css({
+function applyRowSelectionState(row, isSelected) {
+    const $row = $(row);
+    if ($row.length === 0 || $row.find('input[type="checkbox"]').length === 0) {
+        return;
+    }
+
+    const $button = $row.find('.role-button');
+    const $checkbox = $row.find('input[type="checkbox"]');
+
+    $row.toggleClass('selected', isSelected);
+    $button.text(isSelected ? 'Jangan Pilih' : 'Pilih')
+        .toggleClass('btn-secondary', isSelected)
+        .toggleClass('btn-primary', !isSelected)
+        .removeClass('btn-primary btn-secondary');
+
+    if (isSelected) {
+        $button.addClass('btn-secondary');
+        $checkbox.prop('checked', true);
+        $row.css({
+            'background-color': 'orange',
+            'color': 'white'
+        }).find('td').css('color', 'white');
+    } else {
+        $button.addClass('btn-primary');
+        $checkbox.prop('checked', false);
+        $row.css({
             'background-color': '',
             'color': '#3D434A'
-        }).find('td:not(:has(button))').css('color', '#3D434A');
+        }).find('td').css('color', '#3D434A');
+    }
+}
+
+function uncheckall_datatables_permission_tersedia(){
+    $('#datatables_permission_tersedia tbody tr').each(function() {
+        const row = $(this);
+        if (row.find('input[type="checkbox"]').length === 0) {
+            return;
+        }
+        applyRowSelectionState(row, false);
     });
 }
 function toggleRowSelection(row) {
-    $(row).toggleClass('selected');
-    let button = $(row).find('.role-button');
-    let checkbox = $(row).find('input[type="checkbox"]');
-    if ($(row).hasClass('selected')) {
-        button.text('Jangan Pilih').removeClass('btn-primary').addClass('btn-secondary');
-        checkbox.prop('checked', true);
-        $(row).css({
-            'background-color': 'orange',
-            'color': 'white'
-        }).find('*').css('color', 'white');
-    } else {
-        button.text('Pilih').removeClass('btn-secondary').addClass('btn-primary');
-        checkbox.prop('checked', false);
-        $(row).css({
-            'background-color': '',
-            'color': '#3D434A'
-        }).find('td:not(:has(button))').css('color', '#3D434A');
+    const $row = $(row);
+    if ($row.find('input[type="checkbox"]').length === 0) {
+        return;
     }
+    const nextState = !$row.hasClass('selected');
+    applyRowSelectionState($row, nextState);
 }
 
 $('#tabel-role tbody').on('click', 'tr', function() {
@@ -402,14 +439,26 @@ function editrole(idrole, namarole, keteranganrole, group){
         },
         success: function(response) {
            let data = response.data;
-           let permissions = data.permissions;
-           permissions.forEach(function(permission) {
-            $('#datatables_permission_tersedia tbody tr').each(function() {
-                let row = $(this);
-                if (revertStringToLowerCase(row.find('td:first').text()).trim() === revertStringToLowerCase(permission.name).trim()) {
-                    toggleRowSelection(row);
-                }
-            });
+           let permissions = data.permissions || [];
+           const selectedPermissionNames = permissions.map(function(permission) {
+               return String(permission && permission.name ? permission.name : '').trim();
+           }).filter(Boolean);
+
+           $('#datatables_permission_tersedia tbody tr').each(function() {
+               const row = $(this);
+               const checkbox = row.find('input[type="checkbox"]');
+               if (checkbox.length === 0) {
+                   return;
+               }
+
+               const rowPermission = String(checkbox.data('permission-name') || row.data('permission-name') || row.find('td').eq(1).text().trim()).trim();
+               const isSelected = selectedPermissionNames.some(function(name) {
+                   return revertStringToLowerCase(name) === revertStringToLowerCase(rowPermission);
+               });
+
+               checkbox.prop('checked', isSelected);
+               row.attr('data-permission-name', rowPermission);
+               applyRowSelectionState(row, isSelected);
            });
         },
     });
