@@ -228,7 +228,14 @@
             </a>
           </li>
           @endif
-          @if ($hasAccessValidasiKesimpulan || $hasAccessValidasiMcu || $hasAccessArciveMCU || $hasAccessArciveLaboratorium || $hasAccessLaporanPenjualan || $hasAccessLaporanKuitansi || $hasAccessLaporanInsentif)
+          @if (
+            $hasAccessValidasiKesimpulan || $hasAccessValidasiMcu || $hasAccessArciveMCU || $hasAccessArciveLaboratorium ||
+            $hasAccessLaporanPenjualan || $hasAccessLaporanKuitansi || $hasAccessLaporanInsentif ||
+            $hasAccessRekapPemeriksaanFisik || $hasAccessRekapVital || $hasAccessRekapSpirometri ||
+            $hasAccessRekapAudiometri || $hasAccessRekapEKG || $hasAccessRekapThreadmill ||
+            $hasAccessRekapRontgenThorax || $hasAccessRekapRontgenLumbosacral ||
+            $hasAccessRekapUSGUbdomain || $hasAccessRekapFarminghamScore
+          )
           <li class="sidebar-main-title">
             <div>
               <h6>LAPORAN AMC</h6>
@@ -293,7 +300,12 @@
             </ul>
           </li>
           @endif
-          @if ($hasAccessLaporanPenjualan || $hasAccessLaporanKuitansi || $hasAccessLaporanInsentif)
+          @if (
+            $hasAccessRekapPemeriksaanFisik || $hasAccessRekapVital || $hasAccessRekapSpirometri ||
+            $hasAccessRekapAudiometri || $hasAccessRekapEKG || $hasAccessRekapThreadmill ||
+            $hasAccessRekapRontgenThorax || $hasAccessRekapRontgenLumbosacral ||
+            $hasAccessRekapUSGUbdomain || $hasAccessRekapFarminghamScore
+          )
           <li class="sidebar-list">
             <i class="fa fa-thumb-tack"></i>
             <a class="sidebar-link sidebar-title" href="javascript:void(0)">
