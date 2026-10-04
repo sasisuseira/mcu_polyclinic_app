@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Hash,Cookie,Validator};
 use App\Models\{User};
+use App\Models\Masterdata\PartnerMCU;
 use App\Helpers\{ResponseHelper,GlobalHelper};
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
@@ -55,10 +56,14 @@ class AuthController extends Controller
             }
             $user = JWTAuth::user()->load('pegawai');
             $user->resetLoginAttempts();
-            if (!$user->pegawai ||$user->pegawai->status_pegawai === 'Tidak Aktif') {
+            $pegawai = $user->pegawai;
+            $isPartnerCompany = PartnerMCU::where('id', $user->id)->exists();
+            if (($pegawai && $pegawai->status_pegawai === 'Tidak Aktif') || (!$pegawai && !$isPartnerCompany)) {
                 JWTAuth::invalidate($token);
                 return ResponseHelper::error_validation(
-                    'Akun pegawai Tidak Aktif. Silahkan hubungi administrator jika ingin membuka akses pengguna ini.'
+                    $pegawai
+                        ? 'Akun pegawai Tidak Aktif. Silahkan hubungi administrator jika ingin membuka akses pengguna ini.'
+                        : 'Profil akun tidak ditemukan. Silahkan hubungi administrator.'
                 );
             }
             $dynamicAttributes = [
