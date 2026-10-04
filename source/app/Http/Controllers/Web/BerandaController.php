@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\{User,Perusahaan};
+use App\Models\DeveloperUpdateLog;
 use App\Models\Masterdata\MemberMCU;
 use App\Models\Transaksi\Transaksi;
 use App\Models\Laboratorium\{Transaksi as TransaksiLab};
@@ -52,6 +53,11 @@ class BerandaController extends Controller
         $data['jumlah_rekanan'] = Perusahaan::count();
         $data['jumlah_tindakan_selesai'] = Transaksi::where('status_peserta', 'selesai')->count();
         $data['jumlah_tindakan_proses'] = Transaksi::where('status_peserta', 'proses')->count();
+        $data['updateLogs'] = DeveloperUpdateLog::where('visibility', 'internal')
+            ->orderByDesc('released_at')
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get();
         return view('paneladmin.beranda.main_konten', ['data' => $data]);
     }
     public function kasir(Request $request){

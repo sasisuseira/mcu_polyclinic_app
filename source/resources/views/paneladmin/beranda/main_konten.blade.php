@@ -128,6 +128,37 @@
     </div>
   </div>
 </div>
+<div class="row">
+  <div class="col-md-12">
+    <div class="card common-hover">
+      <div class="card-header border-l-primary border-3">
+        <h4>Informasi Update Aplikasi</h4>
+        <p class="mb-0">Tiga pembaruan internal terbaru.</p>
+      </div>
+      <div class="card-body">
+        @forelse ($data['updateLogs'] as $updateLog)
+          <article class="border-bottom pb-3 mb-3">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="badge bg-primary">{{ $updateLog->category }}</span>
+              @if ($updateLog->version)
+                <span class="badge bg-light text-dark">v{{ $updateLog->version }}</span>
+              @endif
+              <small class="text-muted">{{ $updateLog->released_at->translatedFormat('d M Y') }}</small>
+            </div>
+            <h5 class="mb-2">{{ $updateLog->title }}</h5>
+            <div class="markdown-content mb-2">{!! \Illuminate\Support\Str::markdown($updateLog->summary, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+            <details>
+              <summary class="text-primary" style="cursor: pointer">Lihat detail perubahan</summary>
+              <div class="markdown-content pt-2">{!! \Illuminate\Support\Str::markdown($updateLog->details, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+            </details>
+          </article>
+        @empty
+          <p class="text-muted mb-0">Belum ada informasi update internal.</p>
+        @endforelse
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
 @section('css_load')
 @endsection
