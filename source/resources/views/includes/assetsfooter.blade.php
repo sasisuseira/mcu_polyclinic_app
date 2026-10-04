@@ -40,6 +40,6 @@
 
 <!-- Global Variables -->
 <script>
-    var baseurlapi = "{{ url(config('app.api_version_prefix')) }}";
-    var baseurl = "{{ url('') }}";
+    var baseurlapi = "{{ url(config('app.api_version_prefix', '/api/v1')) }}";
+    var baseurl = "{{ url('/') }}";
 </script>
