@@ -100,8 +100,8 @@ Route::group(['middleware' => ['jwt.cookie']], function () {
         });
         Route::prefix('berkas_perusahaan')->group(function () {
             Route::get('mcu',[LaporanController::class,"berkas_mcu"])->middleware('permission_cache:akses_berkas_tindakan_mcu_perusahaan')->name('admin.laporan.berkas_mcu_perusahaan');
-            Route::get('threadmill',[LaporanController::class,"berkas_mcu_threadmill"])->middleware('permission_cache:akses_berkas_tindakan_threadmill')->name('admin.laporan.berkas_mcu_threadmill');
-            Route::get('laboratorium',[LaporanController::class,"berkas_laboratorium"])->middleware('permission_cache:akses_berkas_tindakan_laboratorium')->name('admin.laporan.berkas_laboratorium');
+            Route::get('threadmill',[LaporanController::class,"berkas_mcu_threadmill"])->middleware('permission_cache:akses_berkas_tindakan_threadmill_perusahaan')->name('admin.laporan.berkas_mcu_threadmill');
+            Route::get('laboratorium',[LaporanController::class,"berkas_laboratorium"])->middleware('permission_cache:akses_berkas_tindakan_laboratorium_perusahaan')->name('admin.laporan.berkas_laboratorium');
             Route::get('kuitansi',[LaporanController::class,"laporan_kuitansi"])->middleware('permission_cache:akses_laporan_kuitansi')->name('admin.laporan.laporan_kuitansi');
         });
         Route::prefix('rekap')->group(function () {
