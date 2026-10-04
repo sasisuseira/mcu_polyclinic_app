@@ -52,6 +52,10 @@
       </div>
     @include('includes.assetsfooter')
     @yield('js_load')
+    <script>
+      window.reverbUserId = @json(session('user_id'));
+    </script>
+    @vite('resources/js/app.js')
 <script>
 (function () {
     const timeout = document.querySelector('meta[name="session-expire"]').getAttribute('content') * 60 * 1000; // convert menit -> ms

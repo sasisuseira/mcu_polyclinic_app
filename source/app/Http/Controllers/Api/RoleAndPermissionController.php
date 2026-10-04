@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\ForceLogout;
 use Illuminate\Http\Request;
 use App\Models\RouteAndPermission;
 use App\Helpers\ResponseHelper;
@@ -238,6 +239,15 @@ class RoleAndPermissionController extends Controller
                     ->orWhere('payload', 'like', '%user_details_' . $userId . '%')
                     ->orWhere('payload', 'like', '%user_id|i:' . (int) $userId . '%');
             })->delete();
+
+            try {
+                ForceLogout::dispatch((int) $userId);
+            } catch (\Throwable $exception) {
+                Log::warning('Failed to broadcast role-change logout.', [
+                    'user_id' => $userId,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
         }
     }
 

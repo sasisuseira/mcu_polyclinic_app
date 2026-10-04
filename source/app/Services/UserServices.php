@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\{DB, Hash, Storage};
+use App\Events\ForceLogout;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\{User, Pegawai};
@@ -122,7 +123,28 @@ class UserServices
             $tanda_tangan = Pegawai::where('id', '=', $data['id_pengguna'])->first();
             Pegawai::where('id', '=', $data['id_pengguna'])->update($datapegawai);
             $user_assign = User::find($data['id_pengguna']);
-            $user_assign->syncRoles(strtolower(str_replace(' ', '_', $data['idhakakses'])));
+            $roleName = strtolower(str_replace(' ', '_', $data['idhakakses']));
+            $roleChanged = $user_assign->getRoleNames()->sort()->values()->all() !== [$roleName];
+            $user_assign->syncRoles($roleName);
+            if ($roleChanged) {
+                $userId = (int) $user_assign->id;
+                DB::table('sessions')->where(function ($query) use ($userId) {
+                    $query->where('payload', 'like', '%user_permissions_' . $userId . '%')
+                        ->orWhere('payload', 'like', '%user_details_' . $userId . '%')
+                        ->orWhere('payload', 'like', '%user_id|i:' . $userId . '%');
+                })->delete();
+
+                DB::afterCommit(function () use ($userId) {
+                    try {
+                        ForceLogout::dispatch($userId);
+                    } catch (\Throwable $exception) {
+                        Log::warning('Failed to broadcast user-role logout.', [
+                            'user_id' => $userId,
+                            'exception' => $exception->getMessage(),
+                        ]);
+                    }
+                });
+            }
             if (isset($ttd)) {
                 Storage::disk('public')->delete('user/ttd/' . $tanda_tangan->tanda_tangan_pegawai);
                 Storage::disk('public')->putFileAs('user/ttd/', $ttd, $filename);
